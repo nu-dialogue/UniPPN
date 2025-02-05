@@ -1,0 +1,42 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.python-version
+
+# HPC
+*.job.sh
+*.err
+*.out
+*.stats
+.d*
+
+# output
+outputs
+*.log
+
+# Dataset
+dataset/MultiWOZ2_3/*
+!dataset/MultiWOZ2_3/*ListFile.txt
+
+# D3ST
+system/dst/d3st/processed_data
+system/dst/d3st/models
+
+# SCGPT
+system/nlg/scgpt/data
+
+# LAVA
+system/policy/lava/data/*
+system/policy/lava/config.json
+system/policy/lava/*.model
+
+# PPTOD
+system/e2e/pptod/models
+system/e2e/pptod/processed_data

@@ -1,0 +1,2 @@
+# Dialogue Simulation with Agenda-based User Simulator
+Our user simulator consists of [BERT NLU](https://github.com/thu-coai/ConvLab-2/tree/master/convlab2/nlu/jointBERT/multiwoz), [Agenda-based Policy](https://github.com/thu-coai/ConvLab-2/tree/master/convlab2/policy/rule/multiwoz#agenda-policy) and [Template-based NLG](https://github.com/thu-coai/ConvLab-2/tree/master/convlab2/nlg/template/multiwoz).
