@@ -42,7 +42,9 @@ def set_seed(r_seed):
 def test_end2end():
     # go to README.md of each model for more information
     # BERT nlu
-    sys_nlu = BERTNLU()
+    sys_nlu = BERTNLU(mode='usr', config_file='multiwoz_usr_context.json',
+                      model_file='https://huggingface.co/ConvLab/ConvLab-2_models/resolve/main/bert_multiwoz_usr_context.zip',
+                      device='cuda')
     # simple rule DST
     sys_dst = RuleDST()
     # rule policy
@@ -54,7 +56,8 @@ def test_end2end():
 
     # BERT nlu trained on sys utterance
     user_nlu = BERTNLU(mode='sys', config_file='multiwoz_sys_context.json',
-                       model_file='https://huggingface.co/ConvLab/ConvLab-2_models/resolve/main/bert_multiwoz_sys_context.zip')
+                       model_file='https://huggingface.co/ConvLab/ConvLab-2_models/resolve/main/bert_multiwoz_sys_context.zip',
+                       device='cuda')
     # not use dst
     user_dst = None
     # rule policy
@@ -67,7 +70,7 @@ def test_end2end():
     analyzer = Analyzer(user_agent=user_agent, dataset='multiwoz')
 
     set_seed(20200202)
-    analyzer.comprehensive_analyze(sys_agent=sys_agent, model_name='BERTNLU-RuleDST-RulePolicy-SCLSTM', total_dialog=1000)
+    analyzer.comprehensive_analyze(sys_agent=sys_agent, model_name='BERTNLU-RuleDST-RulePolicy-SCLSTM', total_dialog=100)
 
 if __name__ == '__main__':
     test_end2end()

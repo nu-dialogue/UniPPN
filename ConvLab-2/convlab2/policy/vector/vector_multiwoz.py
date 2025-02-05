@@ -7,15 +7,23 @@ from convlab2.util.multiwoz.lexicalize import delexicalize_da, flat_da, deflat_d
 from convlab2.util.multiwoz.state import default_state
 from convlab2.util.multiwoz.dbquery import Database
 
-DEFAULT_INTENT_FILEPATH = os.path.join(
-                            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
-                            'data/multiwoz/trackable_intent.json'
-                        )
+MULTIWOZ_DATA_DPATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+    'data/multiwoz'
+)
+
+def process_str_action(action):
+    if action and isinstance(action[0], str):
+        action = []
+    return action
 
 class MultiWozVector(Vector):
 
-    def __init__(self, voc_file, voc_opp_file, character='sys',
-                 intent_file=DEFAULT_INTENT_FILEPATH,
+    def __init__(self,
+                 voc_file=os.path.join(MULTIWOZ_DATA_DPATH, 'sys_da_voc.txt'),
+                 voc_opp_file=os.path.join(MULTIWOZ_DATA_DPATH, 'usr_da_voc.txt'),
+                 character='sys',
+                 intent_file=os.path.join(MULTIWOZ_DATA_DPATH, 'trackable_intent.json'),
                  composite_actions=False,
                  vocab_size=500):
 
@@ -137,11 +145,13 @@ class MultiWozVector(Vector):
         # update current domain according to user action
         if self.character == 'sys':
             action = state['user_action']
+            action = process_str_action(action)
             for intent, domain, slot, value in action:
                 if domain in self.db_domains:
                     self.cur_domain = domain
 
         action = state['user_action'] if self.character == 'sys' else state['system_action']
+        action = process_str_action(action)
         opp_action = delexicalize_da(action, self.requestable)
         opp_action = flat_da(opp_action)
         opp_act_vec = np.zeros(self.da_opp_dim)
@@ -150,6 +160,7 @@ class MultiWozVector(Vector):
                 opp_act_vec[self.opp2vec[da]] = 1.
 
         action = state['system_action'] if self.character == 'sys' else state['user_action']
+        action = process_str_action(action)
         action = delexicalize_da(action, self.requestable)
         action = flat_da(action)
         last_act_vec = np.zeros(self.da_dim)

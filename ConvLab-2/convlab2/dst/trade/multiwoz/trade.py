@@ -52,12 +52,12 @@ class MultiWOZTRADE(TRADE, nn.Module):
 
         # load ontology variables
         self.value_dict = json.load(open(os.path.join(root_dir, 'data/multiwoz/value_dict.json')))
-        self.det_dic = {}
+        self.req_slot_vocab = {}
         for domain, dic in REF_USR_DA.items():
-            for key, value in dic.items():
-                assert '-' not in key
-                self.det_dic[key.lower()] = key + '-' + domain
-                self.det_dic[value.lower()] = key + '-' + domain
+            domain = domain.lower()
+            self.req_slot_vocab[domain] = {}
+            for slot, value in dic.items():
+                self.req_slot_vocab[domain][slot] = [slot.lower(), value.lower()]
 
         train, dev, test, test_special, lang, SLOTS_LIST, gating_dict, max_word = prepare_data_seq(False, 'dst',
                                                                                                       False,
@@ -366,18 +366,22 @@ class MultiWOZTRADE(TRADE, nn.Module):
                 print("MODEL SAVED")
             return joint_acc_score
 
-    def detect_requestable_slots(self, observation):
-        result = {}
-        observation = observation.lower()
-        _observation = ' {} '.format(observation)
-        for value in self.det_dic.keys():
-            _value = ' {} '.format(value.strip())
-            if _value in _observation:
-                key, domain = self.det_dic[value].split('-')
-                if domain not in result:
-                    result[domain] = {}
-                result[domain][key] = 0
-        return result
+    def detect_requestable_slots(self, observation):# detect active domains
+        active_domains = []
+        for domain, constraints in self.state['belief_state'].items():
+            if any(constraints['semi'].values()):
+                active_domains.append(domain)
+
+        # detect requestable slots for each active domain
+        req_state = {}
+        observation = f' {observation.lower()} '
+        for domain in active_domains:
+            for slot, keywords in self.req_slot_vocab[domain].items():
+                if any(keyword in observation for keyword in keywords):
+                    if domain not in req_state:
+                        req_state[domain] = {}
+                    req_state[domain][slot] = 0
+        return req_state
 
     def update(self, user_act):
         if type(user_act) is not str:

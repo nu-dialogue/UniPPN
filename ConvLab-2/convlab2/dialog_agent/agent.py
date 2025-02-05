@@ -83,7 +83,7 @@ class PipelineAgent(Agent):
         """
         super(PipelineAgent, self).__init__(name=name)
         assert self.name in ['user', 'sys']
-        self.opponent_name = 'user' if self.name is 'sys' else 'sys'
+        self.opponent_name = 'user' if self.name == 'sys' else 'sys'
         self.nlu = nlu
         self.dst = dst
         self.policy = policy
@@ -125,7 +125,7 @@ class PipelineAgent(Agent):
         self.input_action = deepcopy(self.input_action) # get rid of reference problem
         # get state
         if self.dst is not None:
-            if self.name is 'sys':
+            if self.name == 'sys':
                 self.dst.state['user_action'] = self.input_action
             else:
                 self.dst.state['system_action'] = self.input_action
@@ -143,7 +143,7 @@ class PipelineAgent(Agent):
         # print(model_response)
         if self.dst is not None:
             self.dst.state['history'].append([self.name, model_response])
-            if self.name is 'sys':
+            if self.name == 'sys':
                 self.dst.state['system_action'] = self.output_action
             else:
                 self.dst.state['user_action'] = self.output_action

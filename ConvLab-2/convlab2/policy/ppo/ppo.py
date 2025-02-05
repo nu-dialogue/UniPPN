@@ -1,17 +1,24 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
+import json
+import zipfile
+import logging
+
+import numpy as np
 import torch
 from torch import optim
-import numpy as np
-import logging
-import os
-import json
+
 from convlab2.policy.policy import Policy
 from convlab2.policy.rlmodule import MultiDiscretePolicy, Value
-from convlab2.util.train_util import init_logging_handler
 from convlab2.policy.vector.vector_multiwoz import MultiWozVector
 from convlab2.util.file_util import cached_path
-import zipfile
-import sys
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+logger.addHandler(handler)
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(root_dir)
@@ -33,8 +40,6 @@ class PPO(Policy):
         self.epsilon = cfg['epsilon']
         self.tau = cfg['tau']
         self.is_train = is_train
-        if is_train:
-            init_logging_handler(os.path.join(os.path.dirname(os.path.abspath(__file__)), cfg['log_dir']))
 
         # construct policy and value network
         if dataset == 'Multiwoz':
@@ -189,8 +194,8 @@ class PPO(Policy):
             
             value_loss /= optim_chunk_num
             policy_loss /= optim_chunk_num
-            logging.debug('<<dialog policy ppo>> epoch {}, iteration {}, value, loss {}'.format(epoch, i, value_loss))
-            logging.debug('<<dialog policy ppo>> epoch {}, iteration {}, policy, loss {}'.format(epoch, i, policy_loss))
+            logger.debug('<<dialog policy ppo>> epoch {}, iteration {}, value, loss {}'.format(epoch, i, value_loss))
+            logger.debug('<<dialog policy ppo>> epoch {}, iteration {}, policy, loss {}'.format(epoch, i, policy_loss))
 
         if (epoch+1) % self.save_per_epoch == 0:
             self.save(self.save_dir, epoch)
@@ -202,7 +207,7 @@ class PPO(Policy):
         torch.save(self.value.state_dict(), directory + '/' + str(epoch) + '_ppo.val.mdl')
         torch.save(self.policy.state_dict(), directory + '/' + str(epoch) + '_ppo.pol.mdl')
 
-        logging.info('<<dialog policy>> epoch {}: saved network to mdl'.format(epoch))
+        logger.info('<<dialog policy>> epoch {}: saved network to mdl'.format(epoch))
     
     def load(self, filename):
         value_mdl_candidates = [
@@ -214,7 +219,7 @@ class PPO(Policy):
         for value_mdl in value_mdl_candidates:
             if os.path.exists(value_mdl):
                 self.value.load_state_dict(torch.load(value_mdl, map_location=DEVICE))
-                logging.info('<<dialog policy>> loaded checkpoint from file: {}'.format(value_mdl))
+                logger.info('<<dialog policy>> loaded checkpoint from file: {}'.format(value_mdl))
                 break
         
         policy_mdl_candidates = [
@@ -226,7 +231,7 @@ class PPO(Policy):
         for policy_mdl in policy_mdl_candidates:
             if os.path.exists(policy_mdl):
                 self.policy.load_state_dict(torch.load(policy_mdl, map_location=DEVICE))
-                logging.info('<<dialog policy>> loaded checkpoint from file: {}'.format(policy_mdl))
+                logger.info('<<dialog policy>> loaded checkpoint from file: {}'.format(policy_mdl))
                 break
 
     def load_from_pretrained(self, archive_file, model_file, filename):
@@ -244,12 +249,12 @@ class PPO(Policy):
         policy_mdl = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename + '_ppo.pol.mdl')
         if os.path.exists(policy_mdl):
             self.policy.load_state_dict(torch.load(policy_mdl, map_location=DEVICE))
-            logging.info('<<dialog policy>> loaded checkpoint from file: {}'.format(policy_mdl))
+            logger.info('<<dialog policy>> loaded checkpoint from file: {}'.format(policy_mdl))
 
         value_mdl = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename + '_ppo.val.mdl')
         if os.path.exists(value_mdl):
             self.value.load_state_dict(torch.load(value_mdl, map_location=DEVICE))
-            logging.info('<<dialog policy>> loaded checkpoint from file: {}'.format(value_mdl))
+            logger.info('<<dialog policy>> loaded checkpoint from file: {}'.format(value_mdl))
 
     @classmethod
     def from_pretrained(cls,

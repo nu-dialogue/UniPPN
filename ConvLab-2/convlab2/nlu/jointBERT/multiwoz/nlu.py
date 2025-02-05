@@ -15,15 +15,11 @@ from spacy.symbols import ORTH, LEMMA, POS
 
 
 class BERTNLU(NLU):
-    def __init__(self, mode='all', config_file='multiwoz_all_context.json',
-                 model_file='https://huggingface.co/ConvLab/ConvLab-2_models/resolve/main/bert_multiwoz_all_context.zip'):
+    def __init__(self, mode, config_file, model_file, device):
         assert mode == 'usr' or mode == 'sys' or mode == 'all'
         self.mode = mode
         config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'configs/{}'.format(config_file))
         config = json.load(open(config_file))
-        # print(config['DEVICE'])
-        # DEVICE = config['DEVICE']
-        DEVICE = 'cpu' if not torch.cuda.is_available() else 'cuda:0'
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         data_dir = os.path.join(root_dir, config['data_dir'])
         output_dir = os.path.join(root_dir, config['output_dir'])
@@ -48,10 +44,11 @@ class BERTNLU(NLU):
             archive = zipfile.ZipFile(archive_file, 'r')
             archive.extractall(root_dir)
             archive.close()
+        
         print('Load from', best_model_path)
-        model = JointBERT(config['model'], DEVICE, dataloader.tag_dim, dataloader.intent_dim)
-        model.load_state_dict(torch.load(os.path.join(output_dir, 'pytorch_model.bin'), DEVICE))
-        model.to(DEVICE)
+        model = JointBERT(config['model'], device, dataloader.tag_dim, dataloader.intent_dim)
+        model.load_state_dict(torch.load(os.path.join(output_dir, 'pytorch_model.bin'), device))
+        model.to(device)
         model.eval()
 
         self.model = model
@@ -70,10 +67,12 @@ class BERTNLU(NLU):
 
         for token in token_list:
             token = token.strip()
-            self.nlp.tokenizer.add_special_case(token, [{ORTH: token, LEMMA: token, POS: u'NOUN'}])
+            # self.nlp.tokenizer.add_special_case(token, [{ORTH: token, LEMMA: token, POS: u'NOUN'}])
+            self.nlp.tokenizer.add_special_case(token, [{ORTH: token}])
+            self.nlp.get_pipe("attribute_ruler").add(patterns=[[{"ORTH": token}]], attrs={LEMMA: token, POS: u'NOUN'})
         print("BERTNLU loaded")
 
-    def predict(self, utterance, context=list()):
+    def predict(self, utterance, context=list(), return_probs=False):
         # Note: spacy cannot tokenize 'id' or 'Id' correctly.
         utterance = re.sub(r'\b(id|Id)\b', 'ID', utterance)
         # tokenization first, very important!
@@ -99,22 +98,31 @@ class BERTNLU(NLU):
         pad_batch = self.dataloader.pad_batch(batch_data)
         pad_batch = tuple(t.to(self.model.device) for t in pad_batch)
         word_seq_tensor, tag_seq_tensor, intent_tensor, word_mask_tensor, tag_mask_tensor, context_seq_tensor, context_mask_tensor = pad_batch
-        slot_logits, intent_logits = self.model.forward(word_seq_tensor, word_mask_tensor,
-                                                        context_seq_tensor=context_seq_tensor,
-                                                        context_mask_tensor=context_mask_tensor)
+        with torch.no_grad():
+            slot_logits, intent_logits = self.model.forward(word_seq_tensor, word_mask_tensor,
+                                                            context_seq_tensor=context_seq_tensor,
+                                                            context_mask_tensor=context_mask_tensor)
+            
         das = recover_intent(self.dataloader, intent_logits[0], slot_logits[0], tag_mask_tensor[0],
                              batch_data[0][0], batch_data[0][-4])
         dialog_act = []
         for intent, slot, value in das:
             domain, intent = intent.split('-')
             dialog_act.append([intent, domain, slot, value])
-        return dialog_act
+        result = dialog_act
+
+        if return_probs:
+            intent_probs = torch.sigmoid(intent_logits[0]).cpu()
+            tag_probs_for_all_tokens = torch.softmax(slot_logits[0], dim=1).cpu()
+            tag_probs = tag_probs_for_all_tokens.max(dim=0).values
+            result = (result, intent_probs, tag_probs)
+
+        return result
 
 
 if __name__ == '__main__':
     text = "How about rosa's bed and breakfast ? Their postcode is cb22ha."
-    nlu = BERTNLU(mode='sys', config_file='multiwoz_sys_context.json',
-                  model_file='https://huggingface.co/ConvLab/ConvLab-2_models/resolve/main/bert_multiwoz_all_context.zip')
+    nlu = BERTNLU(mode='sys', config_file='multiwoz_sys_context.json', device='cuda:0')
     print(nlu.predict(text))
     # text = "I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant.I don't care about the Price of the restaurant."
     # print(nlu.predict(text))

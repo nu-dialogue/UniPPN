@@ -13,7 +13,10 @@ FLOAT = 2
 
 class Pack(dict):
     def __getattr__(self, name):
-        return self[name]
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
 
     def add(self, **kwargs):
         for k, v in kwargs.items():

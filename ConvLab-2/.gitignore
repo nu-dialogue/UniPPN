@@ -49,6 +49,9 @@ convlab2/nlu/jointBERT/multiwoz/configs/multiwoz_new_usr_context.json
 convlab2/nlu/milu/multiwoz/configs/system_without_context.jsonnet
 convlab2/nlu/milu/multiwoz/configs/user_without_context.jsonnet
 
+convlab2/policy/larl/multiwoz/data
+convlab2/policy/larl/multiwoz/larl_model
+
 # test script
 *_test.py
 
@@ -58,6 +61,7 @@ convlab2/nlu/milu/multiwoz/configs/user_without_context.jsonnet
 
 # save
 **/save/**
+!convlab2/policy/ppo/save/best_ppo.*.mdl
 
 # .bak.py
 *.bak.py

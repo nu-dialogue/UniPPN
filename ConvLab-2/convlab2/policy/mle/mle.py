@@ -4,7 +4,8 @@ import os
 import zipfile
 from convlab2.policy.policy import Policy
 from convlab2.util.file_util import cached_path
-import logging
+from logging import getLogger
+logging = getLogger(__name__)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

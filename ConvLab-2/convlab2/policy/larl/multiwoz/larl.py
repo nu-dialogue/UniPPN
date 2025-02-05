@@ -447,18 +447,13 @@ class LaRL(Policy):
         if active_domain is None:
             active_domain = prev_active_domain
         return active_domain
+
     def predict(self, state):
-        try:
-            response, active_domain = self.predict_response(state)
-        except Exception as e:
-            print('Response generation error', e)
-            response = 'What did you say?'
-            active_domain = None
+        response, delex_response, active_domain = self.predict_response(state)
         self.prev_state = deepcopy(state)
         self.prev_active_domain = active_domain
-
         
-        return response
+        return response, delex_response, active_domain
 
     def predict_response(self, state):
         history = []
@@ -543,7 +538,7 @@ class LaRL(Policy):
         response = self.populate_template(
             outputs, top_results, num_results, state_with_history)
 
-        return response, active_domain
+        return response, outputs, active_domain
 
     def populate_template(self, template, top_results, num_results, state):
         #print("template:",template)

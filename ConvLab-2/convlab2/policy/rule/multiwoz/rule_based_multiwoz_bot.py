@@ -457,8 +457,8 @@ def check_diff(last_state, state):
             for slot in state['request_state'][domain]:
                 if (domain.capitalize() + "-Request") not in user_action:
                     user_action[domain.capitalize() + "-Request"] = []
-                if [REF_USR_DA[domain].get(slot, slot), '?'] not in user_action[domain.capitalize() + "-Request"]:
-                    user_action[domain.capitalize() + "-Request"].append([REF_USR_DA[domain].get(slot, slot), '?'])
+                if [REF_USR_DA[domain.capitalize()].get(slot, slot), '?'] not in user_action[domain.capitalize() + "-Request"]:
+                    user_action[domain.capitalize() + "-Request"].append([REF_USR_DA[domain.capitalize()].get(slot, slot), '?'])
 
     else:
         for domain in state['belief_state']:

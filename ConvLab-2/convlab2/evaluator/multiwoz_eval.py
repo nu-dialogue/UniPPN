@@ -374,7 +374,8 @@ class MultiWozEvaluator(Evaluator):
 
     def _final_goal_analyze(self):
         """whether the final goal satisfies constraints"""
-        match = mismatch = 0
+        matched_domains = []
+        mismatched_domains = []
         for domain, dom_goal_dict in self.goal.items():
             constraints = []
             if 'reqt' in dom_goal_dict:
@@ -389,30 +390,30 @@ class MultiWozEvaluator(Evaluator):
                 info_constraints = []
             query_result = self.database.query(domain, info_constraints, soft_contraints=reqt_constraints)
             if not query_result:
-                mismatch += 1
+                mismatched_domains.append(domain)
                 continue
 
             booked = self.booked[domain]
             if not self.goal[domain].get('book'):
-                match += 1
+                matched_domains.append(domain)
             elif isinstance(booked, dict):
                 ref = booked['Ref']
                 if any(found['Ref'] == ref for found in query_result):
-                    match += 1
+                    matched_domains.append(domain)
                 else:
-                    mismatch += 1
+                    mismatched_domains.append(domain)
             else:
-                match += 1
-        return match, mismatch
+                matched_domains.append(domain)
+        return matched_domains, mismatched_domains
 
     def final_goal_analyze(self):
         """percentage of domains, in which the final goal satisfies the database constraints.
         If there is no dialog action, returns 1."""
-        match, mismatch = self._final_goal_analyze()
-        if match == mismatch == 0:
+        matched, mismatched = self._final_goal_analyze()
+        if not matched and not mismatched:
             return 1
         else:
-            return match / (match + mismatch)
+            return len(matched) / (len(matched) + len(mismatched))
 
     def get_reward(self):
         if self.task_success():
